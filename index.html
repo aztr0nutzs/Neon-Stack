@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Neon Stack Underground</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050505;
+      --cyan: #00f3ff;
+      --pink: #ff0099;
+      --panel: #0a0a0f;
+      --text: #e6f8ff;
+      --muted: #8aa0a8;
+      --glow: 0 0 18px rgba(0, 243, 255, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      touch-action: manipulation;
+      overscroll-behavior: none;
+    }
+
+    body {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    .app {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      width: min(100vw, 720px);
+      height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+      background: radial-gradient(circle at 20% 20%, rgba(0, 243, 255, 0.06), transparent 32%),
+                  radial-gradient(circle at 80% 10%, rgba(255, 0, 153, 0.08), transparent 30%),
+                  #050505;
+      border: 1px solid rgba(0, 243, 255, 0.25);
+      border-radius: 18px;
+      box-shadow: 0 0 24px rgba(0, 0, 0, 0.9), inset 0 0 30px rgba(0, 243, 255, 0.08);
+      overflow: hidden;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      background: linear-gradient(135deg, rgba(0, 243, 255, 0.12), rgba(255, 0, 153, 0.12));
+      border-bottom: 1px solid rgba(0, 243, 255, 0.25);
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .stat {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 12px;
+      border: 1px solid rgba(0, 243, 255, 0.25);
+      border-radius: 12px;
+      background: rgba(10, 10, 15, 0.8);
+      box-shadow: var(--glow);
+      will-change: transform;
+      transition: transform 120ms ease, border-color 120ms ease;
+    }
+
+    .stat:active {
+      transform: translateY(1px) scale(0.99);
+      border-color: rgba(255, 0, 153, 0.6);
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .stat-value {
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .panel {
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: rgba(5, 5, 8, 0.9);
+      border-bottom: 1px solid rgba(0, 243, 255, 0.12);
+    }
+
+    .bets {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .chip-btn {
+      position: relative;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      background: linear-gradient(140deg, rgba(0, 243, 255, 0.14), rgba(255, 0, 153, 0.12));
+      color: var(--text);
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 0.04em;
+      box-shadow: var(--glow);
+      cursor: pointer;
+      will-change: transform;
+      transition: transform 120ms ease, border-color 120ms ease, box-shadow 200ms ease;
+    }
+
+    .chip-btn.selected {
+      border-color: var(--pink);
+      box-shadow: 0 0 22px rgba(255, 0, 153, 0.4);
+    }
+
+    .chip-btn:active {
+      transform: translateY(1px) scale(0.98);
+    }
+
+    canvas {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(180deg, #0a0a0f 0%, #050505 100%);
+      touch-action: manipulation;
+      display: block;
+    }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: rgba(5, 5, 8, 0.95);
+      border-top: 1px solid rgba(0, 243, 255, 0.12);
+      font-size: 13px;
+      letter-spacing: 0.01em;
+      color: var(--muted);
+    }
+
+    .status {
+      color: var(--text);
+      font-weight: 700;
+      text-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
+    }
+
+    .shake {
+      animation: shake 450ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-1px, 0, 0); }
+      20%, 80% { transform: translate3d(2px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+      40%, 60% { transform: translate3d(4px, 0, 0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header>
+      <div class="stat" id="creditsStat">
+        <span class="stat-label">Credits</span>
+        <span class="stat-value" id="creditsValue">5,000</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Bet</span>
+        <span class="stat-value" id="betValue">100</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Rival AI</span>
+        <span class="stat-value">Online</span>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="bets">
+        <button class="chip-btn selected" data-bet="100">BET 100</button>
+        <button class="chip-btn" data-bet="500">BET 500</button>
+        <button class="chip-btn" data-bet="max">BET MAX</button>
+      </div>
+    </section>
+
+    <canvas id="board" aria-label="Neon Stack Board" role="img"></canvas>
+
+    <div class="footer">
+      <span class="status" id="status">Tap a column to drop.</span>
+      <span>House pays 2x | Diagonals 3x</span>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const COLS = 7;
+      const ROWS = 6;
+      const PLAYER = 1;
+      const AI = 2;
+      const MAX_BET = 1000;
+      const DROP_SPEED = 12;
+
+      const canvas = document.getElementById('board');
+      const ctx = canvas.getContext('2d');
+      const statusEl = document.getElementById('status');
+      const creditsEl = document.getElementById('creditsValue');
+      const betEl = document.getElementById('betValue');
+      const betButtons = Array.from(document.querySelectorAll('.chip-btn'));
+      const app = document.getElementById('app');
+
+      let credits = 5000;
+      let bet = 100;
+      let board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+      let animating = false;
+      let cellSize = 0;
+      let hoverCol = -1;
+      let audioReady = false;
+
+      class SoundManager {
+        constructor() {
+          this.ctx = null;
+        }
+
+        ensureContext() {
+          if (!this.ctx) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+          }
+        }
+
+        playNote(type) {
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+
+          switch (type) {
+            case 'coin':
+              osc.frequency.setValueAtTime(420, this.ctx.currentTime);
+              osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.2);
+              break;
+            case 'impact':
+              osc.frequency.setValueAtTime(110, this.ctx.currentTime);
+              osc.frequency.exponentialRampToValueAtTime(60, this.ctx.currentTime + 0.25);
+              break;
+            case 'win':
+              osc.frequency.setValueAtTime(520, this.ctx.currentTime);
+              osc.frequency.exponentialRampToValueAtTime(1040, this.ctx.currentTime + 0.35);
+              osc.type = 'triangle';
+              break;
+            case 'error':
+              osc.type = 'square';
+              osc.frequency.setValueAtTime(130, this.ctx.currentTime);
+              osc.frequency.linearRampToValueAtTime(90, this.ctx.currentTime + 0.25);
+              break;
+            default:
+              return;
+          }
+
+          gain.gain.setValueAtTime(0.16, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.35);
+          osc.connect(gain).connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.4);
+        }
+
+        coin() { this.ensureContext(); this.playNote('coin'); }
+        impact() { this.ensureContext(); this.playNote('impact'); }
+        win() { this.ensureContext(); this.playNote('win'); }
+        error() { this.ensureContext(); this.playNote('error'); }
+      }
+
+      const sounds = new SoundManager();
+
+      function formatNumber(n) {
+        return n.toLocaleString('en-US');
+      }
+
+      function updateUI() {
+        creditsEl.textContent = formatNumber(credits);
+        betEl.textContent = bet === MAX_BET ? 'MAX' : formatNumber(bet);
+      }
+
+      function resize() {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * window.devicePixelRatio;
+        canvas.height = rect.height * window.devicePixelRatio;
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        cellSize = Math.min(rect.width / COLS, rect.height / ROWS);
+        draw();
+      }
+
+      function clearBoard() {
+        board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+        draw();
+      }
+
+      function setStatus(message) {
+        statusEl.textContent = message;
+      }
+
+      function setBet(value) {
+        if (value === 'max') {
+          bet = Math.min(MAX_BET, credits);
+        } else {
+          bet = value;
+        }
+        betButtons.forEach(btn => {
+          btn.classList.toggle('selected', btn.dataset.bet === String(value));
+        });
+        updateUI();
+      }
+
+      function columnFromX(x) {
+        const rect = canvas.getBoundingClientRect();
+        const relativeX = x - rect.left;
+        return Math.floor(relativeX / (rect.width / COLS));
+      }
+
+      function findRow(col) {
+        for (let row = ROWS - 1; row >= 0; row -= 1) {
+          if (board[row][col] === 0) return row;
+        }
+        return -1;
+      }
+
+      function draw() {
+        const rect = canvas.getBoundingClientRect();
+        ctx.clearRect(0, 0, rect.width, rect.height);
+
+        ctx.fillStyle = '#0d0d13';
+        ctx.fillRect(0, 0, rect.width, rect.height);
+
+        const padding = cellSize * 0.1;
+        const radius = (cellSize / 2) - padding;
+
+        for (let r = 0; r < ROWS; r += 1) {
+          for (let c = 0; c < COLS; c += 1) {
+            const x = c * cellSize + cellSize / 2;
+            const y = r * cellSize + cellSize / 2;
+
+            ctx.beginPath();
+            ctx.arc(x, y, radius + 3, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255,255,255,0.02)';
+            ctx.fill();
+
+            const cell = board[r][c];
+            if (cell === PLAYER) {
+              const gradient = ctx.createRadialGradient(x - 4, y - 6, radius * 0.1, x, y, radius);
+              gradient.addColorStop(0, 'rgba(0, 243, 255, 0.9)');
+              gradient.addColorStop(1, 'rgba(0, 243, 255, 0.35)');
+              ctx.fillStyle = gradient;
+            } else if (cell === AI) {
+              const gradient = ctx.createRadialGradient(x - 4, y - 6, radius * 0.1, x, y, radius);
+              gradient.addColorStop(0, 'rgba(255, 0, 153, 0.9)');
+              gradient.addColorStop(1, 'rgba(255, 0, 153, 0.35)');
+              ctx.fillStyle = gradient;
+            } else {
+              ctx.fillStyle = 'rgba(10,10,16,0.65)';
+            }
+
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (hoverCol === c && cell === 0 && !animating) {
+              ctx.beginPath();
+              ctx.arc(x, y - radius * 1.2, radius * 0.35, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(0, 243, 255, 0.35)';
+              ctx.fill();
+            }
+          }
+        }
+
+        ctx.strokeStyle = 'rgba(0, 243, 255, 0.35)';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(1.5, 1.5, rect.width - 3, rect.height - 3);
+      }
+
+      function checkWin(playerId) {
+        const directions = [
+          [0, 1], [1, 0], [1, 1], [1, -1]
+        ];
+
+        for (let r = 0; r < ROWS; r += 1) {
+          for (let c = 0; c < COLS; c += 1) {
+            if (board[r][c] !== playerId) continue;
+            for (const [dr, dc] of directions) {
+              let count = 0;
+              let diagonal = (dr !== 0 && dc !== 0);
+              for (let k = 0; k < 4; k += 1) {
+                const nr = r + dr * k;
+                const nc = c + dc * k;
+                if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) break;
+                if (board[nr][nc] === playerId) {
+                  count += 1;
+                }
+              }
+              if (count === 4) {
+                return { win: true, diagonal };
+              }
+            }
+          }
+        }
+        return { win: false, diagonal: false };
+      }
+
+      function animateDrop(col, targetRow, playerId) {
+        return new Promise(resolve => {
+          const rect = canvas.getBoundingClientRect();
+          const radius = (cellSize / 2) - cellSize * 0.1;
+          const targetY = targetRow * cellSize + cellSize / 2;
+          let y = -radius;
+
+          const color = playerId === PLAYER ? '#00f3ff' : '#ff0099';
+          const trail = playerId === PLAYER ? 'rgba(0, 243, 255, 0.35)' : 'rgba(255, 0, 153, 0.35)';
+
+          function step() {
+            const x = col * cellSize + cellSize / 2;
+            draw();
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.fillStyle = trail;
+            ctx.fillRect(x - radius / 2, 0, radius, Math.max(y, 0));
+            ctx.restore();
+
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 14;
+            ctx.fill();
+
+            y += DROP_SPEED;
+            if (y < targetY) {
+              requestAnimationFrame(step);
+            } else {
+              board[targetRow][col] = playerId;
+              draw();
+              sounds.impact();
+              resolve();
+            }
+          }
+          sounds.coin();
+          step();
+        });
+      }
+
+      function availableColumns() {
+        return Array.from({ length: COLS }, (_, i) => i).filter(col => board[0][col] === 0);
+      }
+
+      function chooseAiColumn() {
+        const options = availableColumns();
+        if (!options.length) return -1;
+        const preferred = options.sort((a, b) => Math.abs(a - 3) - Math.abs(b - 3));
+        return preferred[Math.floor(Math.random() * Math.min(3, preferred.length))];
+      }
+
+      function triggerShake() {
+        app.classList.remove('shake');
+        void app.offsetWidth;
+        app.classList.add('shake');
+      }
+
+      async function handleTurn(col) {
+        if (animating) return;
+        if (credits < bet || bet <= 0) {
+          setStatus('Insufficient credits for that bet.');
+          sounds.error();
+          return;
+        }
+
+        const row = findRow(col);
+        if (row === -1) {
+          setStatus('Column is full. Choose another lane.');
+          sounds.error();
+          return;
+        }
+
+        animating = true;
+        credits -= bet;
+        updateUI();
+        setStatus('Dropping your chip...');
+
+        await animateDrop(col, row, PLAYER);
+        const playerResult = checkWin(PLAYER);
+        if (playerResult.win) {
+          const reward = playerResult.diagonal ? bet * 3 : bet * 2;
+          credits += reward;
+          updateUI();
+          setStatus(playerResult.diagonal ? `Jackpot! +${formatNumber(reward)} credits.` : `Win! +${formatNumber(reward)} credits.`);
+          sounds.win();
+          if (playerResult.diagonal) triggerShake();
+          animating = false;
+          return;
+        }
+
+        const aiCol = chooseAiColumn();
+        if (aiCol === -1) {
+          setStatus('Grid locked. Resetting board.');
+          animating = false;
+          setTimeout(clearBoard, 400);
+          return;
+        }
+
+        const aiRow = findRow(aiCol);
+        setStatus('House AI moving...');
+        await animateDrop(aiCol, aiRow, AI);
+        const aiResult = checkWin(AI);
+        if (aiResult.win) {
+          setStatus('House connects 4. Better luck next time.');
+          sounds.error();
+          animating = false;
+          return;
+        }
+
+        animating = false;
+        if (!availableColumns().length) {
+          setStatus('Stalemate. Grid resets.');
+          setTimeout(clearBoard, 400);
+        } else {
+          setStatus('Your move. Stack the neon.');
+        }
+      }
+
+      function handlePointer(event) {
+        const x = event.touches ? event.touches[0].clientX : event.clientX;
+        const col = columnFromX(x);
+        if (col >= 0 && col < COLS) {
+          handleTurn(col);
+        }
+      }
+
+      function setupEvents() {
+        canvas.addEventListener('click', handlePointer);
+        canvas.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          if (!audioReady) {
+            sounds.ensureContext();
+            audioReady = true;
+          }
+          handlePointer(e);
+        }, { passive: false });
+
+        canvas.addEventListener('mousemove', (e) => {
+          hoverCol = columnFromX(e.clientX);
+          draw();
+        });
+        canvas.addEventListener('mouseleave', () => {
+          hoverCol = -1;
+          draw();
+        });
+
+        betButtons.forEach(btn => {
+          btn.addEventListener('touchstart', () => btn.classList.add('selected'), { passive: true });
+          btn.addEventListener('click', () => {
+            const value = btn.dataset.bet === 'max' ? 'max' : Number(btn.dataset.bet);
+            setBet(value);
+            setStatus('Bet locked. Drop to play.');
+            if (!audioReady) {
+              sounds.ensureContext();
+              audioReady = true;
+            }
+          });
+        });
+
+        window.addEventListener('resize', resize);
+        window.addEventListener('orientationchange', resize);
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+        document.addEventListener('touchmove', (e) => {
+          if (!e.target.closest('input')) e.preventDefault();
+        }, { passive: false });
+      }
+
+      function init() {
+        setupEvents();
+        updateUI();
+        resize();
+        setStatus('Tap a column to drop. House follows instantly.');
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
