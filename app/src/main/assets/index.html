@@ -7,601 +7,459 @@
   <style>
     :root {
       color-scheme: dark;
-      --bg: #050505;
-      --cyan: #00f3ff;
+      --bg: #03030a;
+      --cyan: #00f0ff;
       --pink: #ff0099;
-      --panel: #0a0a0f;
+      --purple: #bd00ff;
+      --amber: #fbbf24;
+      --green: #22c55e;
+      --muted: #94a3b8;
       --text: #e6f8ff;
-      --muted: #8aa0a8;
-      --glow: 0 0 18px rgba(0, 243, 255, 0.35);
+      --panel: rgba(8,10,18,0.9);
+      --glass: rgba(255,255,255,0.05);
+      --grid-offset: 0px;
+      --noise: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"%3E%3Cfilter id="n" x="0" y="0" width="100%25" height="100%25"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="120" height="120" filter="url(%23n)" opacity="0.18"/%3E%3C/svg%3E');
+    }
+    * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; width: 100%; height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif; overflow: hidden; }
+    body { display: flex; }
+    #app { flex: 1; position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* Animated holo background */
+    .bg-stack { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; perspective: 1400px; }
+    .bg-plane { position: absolute; left: -50%; right: -50%; height: 55vh; transform-origin: center; filter: drop-shadow(0 0 30px rgba(0,0,0,0.45)); }
+    .bg-ceiling { top: 0; background:
+        linear-gradient(transparent 55%, var(--purple) 100%),
+        repeating-linear-gradient(90deg, transparent 0, transparent 50px, rgba(189,0,255,0.28) 54px),
+        repeating-linear-gradient(180deg, transparent 0, transparent 50px, rgba(189,0,255,0.16) 54px);
+      transform: rotateX(-62deg) scale(2);
+      background-position: center calc(var(--grid-offset));
+      mix-blend-mode: screen;
+    }
+    .bg-floor { bottom: 0; background:
+        linear-gradient(var(--cyan) 0%, var(--bg) 82%),
+        repeating-linear-gradient(90deg, transparent 0, transparent 50px, rgba(0,240,255,0.16) 54px),
+        repeating-linear-gradient(0deg, transparent 0, transparent 50px, rgba(0,240,255,0.22) 54px);
+      transform: rotateX(62deg) scale(2);
+      background-position: center calc(-1 * var(--grid-offset));
+      mix-blend-mode: screen;
+    }
+    .bg-vignette { position: absolute; inset: 0; background: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.7) 78%, rgba(0,0,0,0.92)); }
+    .bg-orbs { position:absolute; inset:0; background:
+      radial-gradient(480px at 15% 20%, rgba(0,240,255,0.12), transparent 60%),
+      radial-gradient(420px at 80% 25%, rgba(255,0,153,0.10), transparent 60%),
+      radial-gradient(420px at 50% 80%, rgba(189,0,255,0.10), transparent 60%);
+      mix-blend-mode: screen;
     }
 
-    * {
-      box-sizing: border-box;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
+    /* Shared UI elements */
+    .glass { background: var(--glass); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.08); }
+    .panel { background: var(--panel); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.55); }
+    .pill { border-radius: 999px; padding: 10px 16px; letter-spacing: 0.08em; font-weight: 800; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.08); }
+    .btn { cursor: pointer; transition: transform 120ms ease, box-shadow 180ms ease, background 180ms ease, border 180ms ease; }
+    .btn:active { transform: translateY(1px) scale(0.99); }
+    .title { font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase; }
+    .mono { font-family: 'JetBrains Mono','Menlo',monospace; }
 
-    html, body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: var(--bg);
-      color: var(--text);
-      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
-      touch-action: manipulation;
-      overscroll-behavior: none;
-    }
+    /* Menu layout */
+    .menu-shell { width: min(1200px, 100%); padding: 18px; margin: auto; display:flex; flex-direction:column; gap:16px; }
+    .menu-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap:12px; }
+    .menu-card { position:relative; overflow:hidden; padding:16px; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background: linear-gradient(135deg, rgba(0,240,255,0.12), rgba(189,0,255,0.12)); box-shadow:0 0 24px rgba(0,0,0,0.45); }
+    .menu-card .label { color: var(--muted); font-size:12px; letter-spacing:0.15em; }
+    .menu-card h3 { margin:6px 0 4px; }
 
-    body {
-      display: flex;
-      align-items: stretch;
-      justify-content: center;
-      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-    }
+    /* Console */
+    .console-wrap { perspective: 1400px; width: 100%; display:flex; justify-content:center; }
+    .console { width:min(95vw,960px); background:#0c0c14; border:1px solid #2e3345; border-radius:18px; padding:10px; box-shadow:0 30px 70px rgba(0,0,0,0.7); transform: rotateX(10deg) scale(0.98); transform-origin: center top; position:relative; }
+    .console::after { content:""; position:absolute; inset:-8px; border-radius:24px; border:1px solid rgba(0,240,255,0.18); pointer-events:none; }
+    .board { position: relative; background: #05060c; border: 4px solid #48506b; border-radius: 14px; padding: 10px; overflow: hidden; box-shadow: inset 0 0 30px rgba(0,0,0,0.7); }
+    .board-grid { display:grid; grid-template-columns: repeat(7, 1fr); gap:8px; }
+    .slot { position: relative; width: 68px; max-width:12vw; aspect-ratio: 1/1; border-radius: 50%; background: #0f1221; border: 1px solid #1f273a; box-shadow: inset 0 2px 6px #000, inset 0 -2px 8px rgba(255,255,255,0.05); display:grid; place-items:center; }
+    .chip { width: 90%; height: 90%; border-radius: 50%; display:grid; place-items:center; box-shadow: 0 0 18px currentColor, inset 0 0 12px rgba(255,255,255,0.08); position:relative; overflow:hidden; }
+    .chip .inner { width:68%; height:68%; border-radius:50%; border:3px solid rgba(255,255,255,0.4); opacity:0.9; }
+    .chip .emblem { position:absolute; font-weight:900; font-size:18px; color:rgba(255,255,255,0.8); text-shadow:0 0 10px currentColor; }
+    .chip.bonus { box-shadow:0 0 22px var(--amber), 0 0 60px rgba(251,191,36,0.35); background:radial-gradient(circle at 30% 30%, #fff7d6, #f59e0b); color:#1f172a; }
+    .virus { width: 90%; height: 90%; border-radius: 50%; background: radial-gradient(circle, rgba(127,0,0,0.75), rgba(60,0,0,0.8)); color: #f87171; display:grid; place-items:center; animation: pulse 1.2s infinite; box-shadow:0 0 18px rgba(248,113,113,0.5); }
+    .column-hit { position:absolute; inset:0; display:grid; grid-template-columns: repeat(7, 1fr); }
+    .column-hit div { cursor:pointer; }
+    .column-hit div:hover { background: rgba(255,255,255,0.03); }
 
-    .app {
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      width: min(100vw, 720px);
-      height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-      background: radial-gradient(circle at 20% 20%, rgba(0, 243, 255, 0.06), transparent 32%),
-                  radial-gradient(circle at 80% 10%, rgba(255, 0, 153, 0.08), transparent 30%),
-                  #050505;
-      border: 1px solid rgba(0, 243, 255, 0.25);
-      border-radius: 18px;
-      box-shadow: 0 0 24px rgba(0, 0, 0, 0.9), inset 0 0 30px rgba(0, 243, 255, 0.08);
-      overflow: hidden;
-    }
+    /* Deck */
+    .deck { position:relative; margin-top:10px; background: linear-gradient(180deg, #191a2a, #0c0c14); border-top: 4px solid #4b5563; box-shadow: 0 -18px 50px rgba(0,0,0,0.7); border-radius: 18px; padding: 18px; }
+    .deck-grid { display:flex; gap:18px; justify-content:center; align-items:center; flex-wrap:wrap; }
+    .arcade-btn { position: relative; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; color: #fff; border: 4px solid #222; background: radial-gradient(circle at 30% 30%, var(--purple), #333); box-shadow: 0 10px 0 #111, 0 12px 16px rgba(0,0,0,0.55), inset 0 -6px 12px rgba(0,0,0,0.45); width: 88px; height: 88px; font-size: 26px; font-weight:900; }
+    .arcade-btn .shine { position: absolute; inset: 0; border-radius: inherit; opacity: 0.32; background: radial-gradient(circle at 30% 30%, currentColor, transparent 30%); box-shadow: 0 0 18px currentColor; }
+    .station { display:flex; flex-direction:column; gap:8px; padding:12px 14px; border-radius:14px; border:1px solid rgba(255,255,255,0.08); background:#0d0f1a; min-width:180px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
+    .station .score { font-size:32px; font-weight:900; }
 
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 18px;
-      background: linear-gradient(135deg, rgba(0, 243, 255, 0.12), rgba(255, 0, 153, 0.12));
-      border-bottom: 1px solid rgba(0, 243, 255, 0.25);
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-      font-size: 13px;
-      font-weight: 700;
-    }
+    /* Settings modal */
+    .modal { position:fixed; inset:0; background:rgba(0,0,0,0.65); display:flex; align-items:center; justify-content:center; z-index:50; }
+    .modal-card { width:min(720px,90vw); padding:18px; }
+    .toggle-row { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.08); margin-bottom:8px; background:rgba(255,255,255,0.03); }
 
-    .stat {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      padding: 8px 12px;
-      border: 1px solid rgba(0, 243, 255, 0.25);
-      border-radius: 12px;
-      background: rgba(10, 10, 15, 0.8);
-      box-shadow: var(--glow);
-      will-change: transform;
-      transition: transform 120ms ease, border-color 120ms ease;
-    }
-
-    .stat:active {
-      transform: translateY(1px) scale(0.99);
-      border-color: rgba(255, 0, 153, 0.6);
-    }
-
-    .stat-label {
-      color: var(--muted);
-      font-weight: 600;
-    }
-
-    .stat-value {
-      font-size: 16px;
-      font-weight: 800;
-    }
-
-    .panel {
-      padding: 12px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      background: rgba(5, 5, 8, 0.9);
-      border-bottom: 1px solid rgba(0, 243, 255, 0.12);
-    }
-
-    .bets {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
-
-    .chip-btn {
-      position: relative;
-      padding: 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(0, 243, 255, 0.4);
-      background: linear-gradient(140deg, rgba(0, 243, 255, 0.14), rgba(255, 0, 153, 0.12));
-      color: var(--text);
-      font-weight: 800;
-      font-size: 15px;
-      letter-spacing: 0.04em;
-      box-shadow: var(--glow);
-      cursor: pointer;
-      will-change: transform;
-      transition: transform 120ms ease, border-color 120ms ease, box-shadow 200ms ease;
-    }
-
-    .chip-btn.selected {
-      border-color: var(--pink);
-      box-shadow: 0 0 22px rgba(255, 0, 153, 0.4);
-    }
-
-    .chip-btn:active {
-      transform: translateY(1px) scale(0.98);
-    }
-
-    canvas {
-      flex: 1;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(180deg, #0a0a0f 0%, #050505 100%);
-      touch-action: manipulation;
-      display: block;
-    }
-
-    .footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 16px;
-      background: rgba(5, 5, 8, 0.95);
-      border-top: 1px solid rgba(0, 243, 255, 0.12);
-      font-size: 13px;
-      letter-spacing: 0.01em;
-      color: var(--muted);
-    }
-
-    .status {
-      color: var(--text);
-      font-weight: 700;
-      text-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
-    }
-
-    .shake {
-      animation: shake 450ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-    }
-
-    @keyframes shake {
-      10%, 90% { transform: translate3d(-1px, 0, 0); }
-      20%, 80% { transform: translate3d(2px, 0, 0); }
-      30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-      40%, 60% { transform: translate3d(4px, 0, 0); }
-    }
+    /* Animations */
+    @keyframes pulse { 0%,100%{transform:scale(1); opacity:0.9;} 50%{transform:scale(1.05); opacity:0.65;} }
+    @keyframes floaty { 0%{transform:translateY(0);} 50%{transform:translateY(-6px);} 100%{transform:translateY(0);} }
+    @keyframes scanline { 0%{opacity:0.25;} 100%{opacity:0.05;} }
   </style>
 </head>
 <body>
-  <div class="app" id="app">
-    <header>
-      <div class="stat" id="creditsStat">
-        <span class="stat-label">Credits</span>
-        <span class="stat-value" id="creditsValue">5,000</span>
-      </div>
-      <div class="stat">
-        <span class="stat-label">Bet</span>
-        <span class="stat-value" id="betValue">100</span>
-      </div>
-      <div class="stat">
-        <span class="stat-label">Rival AI</span>
-        <span class="stat-value">Online</span>
-      </div>
-    </header>
-
-    <section class="panel">
-      <div class="bets">
-        <button class="chip-btn selected" data-bet="100">BET 100</button>
-        <button class="chip-btn" data-bet="500">BET 500</button>
-        <button class="chip-btn" data-bet="max">BET MAX</button>
-      </div>
-    </section>
-
-    <canvas id="board" aria-label="Neon Stack Board" role="img"></canvas>
-
-    <div class="footer">
-      <span class="status" id="status">Tap a column to drop.</span>
-      <span>House pays 2x | Diagonals 3x</span>
-    </div>
+  <div class="bg-stack">
+    <div class="bg-plane bg-ceiling"></div>
+    <div class="bg-plane bg-floor"></div>
+    <div class="bg-orbs"></div>
+    <div class="bg-vignette"></div>
   </div>
+  <div id="app"></div>
 
   <script>
-    (() => {
-      const COLS = 7;
-      const ROWS = 6;
-      const PLAYER = 1;
-      const AI = 2;
-      const MAX_BET = 1000;
-      const DROP_SPEED = 12;
+    /* === DATA === */
+    const COLORS = { cyan: '#00F0FF', pink: '#FF0099', purple: '#BD00FF', amber: '#FBBF24', green: '#22C55E', dark: '#050510' };
+    const CHARACTERS = [
+      { id:'kairo', name:'KAIRO', role:'NETRUNNER', color: COLORS.cyan, emblem:'Ψ', desc:'Precision protocol specialist.' },
+      { id:'nova', name:'NOVA', role:'POP IDOL', color: COLORS.pink, emblem:'✦', desc:'Unstable but explosive.' },
+      { id:'titan', name:'TITAN', role:'ENFORCER', color:'#FF3300', emblem:'⛨', desc:'Brute-force control.' },
+      { id:'viper', name:'VIPER', role:'ASSASSIN', color: COLORS.purple, emblem:'⚔', desc:'Silent infiltration routines.' },
+      { id:'onyx', name:'ONYX', role:'BLACK ICE', color:'#9ca3af', emblem:'◆', desc:'Adaptive counter-intrusion.' }
+    ];
+    const CHIP_SKINS = [
+      { id:'plasma', name:'PLASMA', type:'ring' },
+      { id:'bio', name:'BIOHAZARD', type:'blades' },
+      { id:'tech', name:'CIRCUIT', type:'grid' },
+      { id:'hex', name:'HIVE', type:'hex' }
+    ];
+    const GAME_MODES = [
+      { id:'classic', name:'NEON CLASSIC', desc:'Standard 4-link protocol.' },
+      { id:'virus', name:'VIRUS MODE', desc:'Random blocks spawn every 3 turns.' },
+      { id:'blitz', name:'BLITZ 30', desc:'Rapid 30s turn timer (visual only).' },
+      { id:'gravity', name:'GRAVITY FLIP', desc:'Chips fall upward every other turn (visual only).' },
+      { id:'hardcore', name:'HARDCORE', desc:'No bonus chips. Pure skill.' }
+    ];
 
-      const canvas = document.getElementById('board');
-      const ctx = canvas.getContext('2d');
-      const statusEl = document.getElementById('status');
-      const creditsEl = document.getElementById('creditsValue');
-      const betEl = document.getElementById('betValue');
-      const betButtons = Array.from(document.querySelectorAll('.chip-btn'));
-      const app = document.getElementById('app');
+    /* === STATE === */
+    const state = {
+      screen: 'menu', // menu, lobby, game
+      offset: 0,
+      p1: { char:0, skin:0 },
+      p2: { char:1, skin:1 },
+      mode: 0,
+      scores: {1:0, 2:0},
+      board: Array.from({ length:6 }, () => Array(7).fill(0)),
+      currentPlayer: 1,
+      winner: 0,
+      turnCount: 0,
+      bonusReady: false,
+      settings: { music:true, sfx:true, vibration:true, colorblind:false, highQuality:true },
+      showSettings:false
+    };
 
-      let credits = 5000;
-      let bet = 100;
-      let board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-      let animating = false;
-      let cellSize = 0;
-      let hoverCol = -1;
-      let audioReady = false;
+    /* === HELPERS === */
+    const lighten = (hex, amount=0.25) => {
+      const num = parseInt(hex.replace('#',''),16); let r=(num>>16)&255,g=(num>>8)&255,b=num&255;
+      r=Math.min(255,Math.floor(r+(255-r)*amount)); g=Math.min(255,Math.floor(g+(255-g)*amount)); b=Math.min(255,Math.floor(b+(255-b)*amount));
+      return `rgb(${r},${g},${b})`;
+    };
+    const rootEl = document.getElementById('app');
 
-      class SoundManager {
-        constructor() {
-          this.ctx = null;
-        }
-
-        ensureContext() {
-          if (!this.ctx) {
-            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-          }
-          if (this.ctx.state === 'suspended') {
-            this.ctx.resume();
-          }
-        }
-
-        playNote(type) {
-          if (!this.ctx) return;
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'sine';
-
-          switch (type) {
-            case 'coin':
-              osc.frequency.setValueAtTime(420, this.ctx.currentTime);
-              osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.2);
-              break;
-            case 'impact':
-              osc.frequency.setValueAtTime(110, this.ctx.currentTime);
-              osc.frequency.exponentialRampToValueAtTime(60, this.ctx.currentTime + 0.25);
-              break;
-            case 'win':
-              osc.frequency.setValueAtTime(520, this.ctx.currentTime);
-              osc.frequency.exponentialRampToValueAtTime(1040, this.ctx.currentTime + 0.35);
-              osc.type = 'triangle';
-              break;
-            case 'error':
-              osc.type = 'square';
-              osc.frequency.setValueAtTime(130, this.ctx.currentTime);
-              osc.frequency.linearRampToValueAtTime(90, this.ctx.currentTime + 0.25);
-              break;
-            default:
-              return;
-          }
-
-          gain.gain.setValueAtTime(0.16, this.ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.35);
-          osc.connect(gain).connect(this.ctx.destination);
-          osc.start();
-          osc.stop(this.ctx.currentTime + 0.4);
-        }
-
-        coin() { this.ensureContext(); this.playNote('coin'); }
-        impact() { this.ensureContext(); this.playNote('impact'); }
-        win() { this.ensureContext(); this.playNote('win'); }
-        error() { this.ensureContext(); this.playNote('error'); }
+    function resetBoard() {
+      state.board = Array.from({ length:6 }, () => Array(7).fill(0));
+      state.currentPlayer = 1; state.winner = 0; state.turnCount = 0; state.bonusReady=false;
+    }
+    function availableColumns(){ return Array.from({length:7},(_,i)=>i).filter(c=>state.board[0][c]===0); }
+    function checkWin(player){
+      const R=6,C=7,b=state.board,dirs=[[0,1],[1,0],[1,1],[1,-1]];
+      for(let r=0;r<R;r++) for(let c=0;c<C;c++) if(b[r][c]===player){
+        for(const[dr,dc]of dirs){ let ok=true; for(let k=0;k<4;k++){ const nr=r+dr*k,nc=c+dc*k; if(nr<0||nr>=R||nc<0||nc>=C||b[nr][nc]!==player){ok=false;break;} } if(ok) return true; }
       }
-
-      const sounds = new SoundManager();
-
-      function formatNumber(n) {
-        return n.toLocaleString('en-US');
+      return false;
+    }
+    function dropChip(col){
+      if(state.winner) return;
+      let row=-1; for(let r=5;r>=0;r--){ if(state.board[r][col]===0){row=r; break;} }
+      if(row===-1) return;
+      // place chip
+      const isBonus = state.bonusReady && GAME_MODES[state.mode].id!=='hardcore';
+      const marker = isBonus ? (state.currentPlayer===1?11:12) : state.currentPlayer;
+      state.board[row][col]=marker;
+      state.bonusReady=false;
+      // virus
+      if(GAME_MODES[state.mode].id==='virus' && (state.turnCount+1)%3===0){
+        let placed=false,tries=0; while(!placed && tries<30){ const rr=Math.floor(Math.random()*6); const cc=Math.floor(Math.random()*7); if(state.board[rr][cc]===0){ state.board[rr][cc]=9; placed=true;} tries++; }
       }
+      // bonus gauge: every 4 turns next chip is bonus
+      if((state.turnCount+1)%4===0 && GAME_MODES[state.mode].id!=='hardcore'){ state.bonusReady=true; }
+      if(checkWin(state.currentPlayer)) { state.winner=state.currentPlayer; state.scores[state.currentPlayer]+=1; }
+      else { state.currentPlayer = state.currentPlayer===1?2:1; state.turnCount++; }
+      render();
+    }
 
-      function updateUI() {
-        creditsEl.textContent = formatNumber(credits);
-        betEl.textContent = bet === MAX_BET ? 'MAX' : formatNumber(bet);
-      }
+    /* === UI SECTIONS === */
+    function menuScreen(){
+      rootEl.innerHTML = `
+        <div class="menu-shell">
+          <div class="panel glass" style="padding:14px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <div>
+              <div class="label mono" style="color:var(--muted);">NEON STACK UNDERGROUND</div>
+              <div class="title" style="font-size:30px; background:linear-gradient(90deg,var(--cyan),var(--purple)); -webkit-background-clip:text; color:transparent;">Arcade Operator Console</div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <button class="btn pill glass" style="border-color:rgba(0,240,255,0.4);" id="btn-lobby">Loadout</button>
+              <button class="btn pill glass" style="border-color:rgba(251,191,36,0.5); color:var(--amber);" id="btn-settings">Settings</button>
+            </div>
+          </div>
 
-      function resize() {
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width * window.devicePixelRatio;
-        canvas.height = rect.height * window.devicePixelRatio;
-        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-        cellSize = Math.min(rect.width / COLS, rect.height / ROWS);
-        draw();
-      }
+          <div class="menu-grid">
+            ${[
+              {title:'Play Arcade',desc:'2P local neon duel.',id:'lobby',icon:'🎮',color:'var(--cyan)'},
+              {title:'Tutorial',desc:'Rules, modes, and chip bonuses.',id:'tutorial',icon:'📘',color:'var(--amber)'},
+              {title:'Practice vs House',desc:'Single player vs AI (visual).',id:'practice',icon:'🤖',color:'var(--pink)'},
+              {title:'Credits',desc:'Design, code, audio.',id:'credits',icon:'💿',color:'var(--purple)'}
+            ].map(card=>`
+              <div class="menu-card btn" data-jump="${card.id}">
+                <div class="label mono" style="color:var(--muted);">${card.icon} ${card.title}</div>
+                <h3 class="title" style="margin:4px 0;">${card.title}</h3>
+                <div style="color:${card.color};">${card.desc}</div>
+              </div>
+            `).join('')}
+          </div>
 
-      function clearBoard() {
-        board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-        draw();
-      }
+          <div class="panel glass" style="padding:12px 16px; display:grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap:10px;">
+            ${renderModeBadges()}
+          </div>
+        </div>`;
+      rootEl.querySelector('#btn-lobby').onclick=()=>{ state.screen='lobby'; render(); };
+      rootEl.querySelector('#btn-settings').onclick=()=>{ state.showSettings=true; render(); };
+      rootEl.querySelectorAll('[data-jump]').forEach(el=>{ el.onclick=()=>{ state.screen='lobby'; render(); }; });
+      if(state.showSettings) settingsModal();
+    }
 
-      function setStatus(message) {
-        statusEl.textContent = message;
-      }
+    function renderModeBadges(){
+      return GAME_MODES.map((m,i)=>`
+        <div class="btn glass" data-mode="${i}" style="padding:10px 12px; border-radius:12px; border:1px solid ${i===state.mode?'var(--cyan)':'rgba(255,255,255,0.06)'}; box-shadow:${i===state.mode?'0 0 18px rgba(0,240,255,0.35)':'none'};">
+          <div class="label mono">${m.name}</div>
+          <div style="color:var(--muted);">${m.desc}</div>
+        </div>`).join('');
+    }
 
-      function setBet(value) {
-        if (value === 'max') {
-          bet = Math.min(MAX_BET, credits);
-        } else {
-          bet = value;
-        }
-        betButtons.forEach(btn => {
-          btn.classList.toggle('selected', btn.dataset.bet === String(value));
-        });
-        updateUI();
-      }
+    function lobbyScreen(){
+      const mode = GAME_MODES[state.mode];
+      rootEl.innerHTML = `
+        <div class="menu-shell" style="gap:14px;">
+          <div class="panel glass" style="padding:14px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div class="label mono" style="color:var(--muted);">LOADOUT</div>
+              <div class="title" style="font-size:34px; color:var(--text);">Select Pilots & Chips</div>
+              <div style="color:var(--muted);">Mode: <strong>${mode.name}</strong> — ${mode.desc}</div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <button class="btn pill glass" id="mode-cycle">Cycle Modes</button>
+              <button class="btn pill glass" id="start-game" style="background:linear-gradient(90deg,#facc15,#f97316); color:#111; border-color:rgba(0,0,0,0.2); box-shadow:0 0 30px rgba(250,204,21,0.6);">Engage</button>
+            </div>
+          </div>
 
-      function columnFromX(x) {
-        const rect = canvas.getBoundingClientRect();
-        const relativeX = x - rect.left;
-        return Math.floor(relativeX / (rect.width / COLS));
-      }
+          <div class="menu-grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr));">
+            ${renderPlayerCard(1,state.p1)}
+            ${renderPlayerCard(2,state.p2)}
+          </div>
 
-      function findRow(col) {
-        for (let row = ROWS - 1; row >= 0; row -= 1) {
-          if (board[row][col] === 0) return row;
-        }
-        return -1;
-      }
+          <div class="panel glass" style="padding:12px 16px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+            <div class="label mono" style="color:var(--muted);">Bonus Chips</div>
+            <div style="color:${state.bonusReady?'var(--amber)':'var(--muted)'};">Gauge: ${state.bonusReady?'READY – next chip is Ion Bonus!':`Fill every 4 turns (${(state.turnCount%4)}/4)`}</div>
+            <div class="label mono" style="color:var(--muted);">Settings</div>
+            <button class="btn pill glass" id="btn-settings">Open</button>
+            <button class="btn pill glass" id="btn-menu">Main Menu</button>
+          </div>
+        </div>`;
+      rootEl.querySelector('#mode-cycle').onclick=()=>{ state.mode = (state.mode+1)%GAME_MODES.length; render(); };
+      rootEl.querySelector('#start-game').onclick=()=>{ resetBoard(); state.screen='game'; render(); };
+      rootEl.querySelector('#btn-menu').onclick=()=>{ state.screen='menu'; render(); };
+      rootEl.querySelector('#btn-settings').onclick=()=>{ state.showSettings=true; render(); };
+      attachPlayerControls();
+      if(state.showSettings) settingsModal();
+    }
 
-      function draw() {
-        const rect = canvas.getBoundingClientRect();
-        ctx.clearRect(0, 0, rect.width, rect.height);
+    function renderPlayerCard(player,data){
+      const char=CHARACTERS[data.char];
+      return `
+        <div class="panel" style="padding:16px; border:1px solid ${char.color}55; box-shadow:0 0 28px ${char.color}30;">
+          <div class="mono" style="color:${char.color}; letter-spacing:0.14em; font-weight:900;">PLAYER ${player}</div>
+          <div style="display:flex; align-items:center; gap:12px; margin-top:10px;">
+            <button class="btn" data-player="${player}" data-action="prev" style="color:${char.color}; font-size:28px;">⟵</button>
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px;">
+              <div style="width:180px; height:180px; border-radius:50%; border:4px solid ${char.color}; color:${char.color}; display:grid; place-items:center; position:relative; box-shadow:0 0 24px ${char.color}; background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.06), transparent 55%);">
+                <div style="font-size:64px;">${char.emblem}</div>
+                <div class="mono" style="position:absolute; bottom:-12px; background:rgba(0,0,0,0.7); border:1px solid ${char.color}; padding:6px 10px; border-radius:10px; letter-spacing:0.14em; font-size:12px;">${char.role}</div>
+              </div>
+              <div class="title" style="color:${char.color}; font-size:36px; text-shadow:0 0 14px ${char.color};">${char.name}</div>
+              <div style="color:var(--muted); font-size:13px; font-style:italic;">${char.desc}</div>
+            </div>
+            <button class="btn" data-player="${player}" data-action="next" style="color:${char.color}; font-size:28px;">⟶</button>
+          </div>
+          <div style="margin-top:14px;">
+            <div class="mono" style="color:var(--muted); margin-bottom:6px;">CHIP SKIN</div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              ${CHIP_SKINS.map((s,i)=>`
+                <button class="btn pill glass" data-player="${player}" data-skin="${i}" style="border-color:${i===data.skin?char.color:'rgba(255,255,255,0.05)'}; color:${i===data.skin?char.color:'var(--muted)'};">${s.name}</button>
+              `).join('')}
+            </div>
+          </div>
+        </div>`;
+    }
 
-        ctx.fillStyle = '#0d0d13';
-        ctx.fillRect(0, 0, rect.width, rect.height);
+    function gameScreen(){
+      const mode = GAME_MODES[state.mode];
+      const active = state.currentPlayer===1?state.p1:state.p2;
+      const activeChar = CHARACTERS[active.char];
+      rootEl.innerHTML = `
+        <div style="padding:14px; display:flex; flex-direction:column; gap:12px; height:100vh;">
+          <div class="panel glass" style="padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div class="label mono" style="color:var(--muted);">${mode.name}</div>
+              <div class="title" style="font-size:32px; color:${mode.id==='classic'?COLORS.cyan:COLORS.purple}; text-shadow:0 0 20px ${COLORS.purple};">
+                <span style="color:var(--cyan)">${mode.name.split(' ')[0]}</span> ${mode.name.split(' ')[1]||''}
+              </div>
+              <div class="mono" style="color:var(--amber); letter-spacing:0.28em; font-size:12px;">${state.winner?`WINNER: ${state.winner===1?CHARACTERS[state.p1.char].name:CHARACTERS[state.p2.char].name}`:`TURN: ${activeChar.name}`}</div>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+              <button class="btn pill glass" id="btn-loadout">Loadout</button>
+              <button class="btn pill glass" id="btn-reset">${state.winner?'Rematch':'Reset'}</button>
+              <button class="btn pill glass" id="btn-settings">Settings</button>
+            </div>
+          </div>
 
-        const padding = cellSize * 0.1;
-        const radius = (cellSize / 2) - padding;
+          <div class="console-wrap">
+            <div class="console">
+              <div class="board">
+                <div class="column-hit">
+                  ${Array.from({length:7}).map((_,c)=>`<div data-col="${c}"></div>`).join('')}
+                </div>
+                <div class="board-grid">
+                  ${state.board.map((row,r)=>row.map((cell,c)=>renderCell(cell,r,c)).join('')).join('')}
+                </div>
+              </div>
+              <div class="deck">
+                <div style="position:absolute; inset:0; opacity:0.06; background-image:radial-gradient(circle at center,#fff 1px, transparent 1px); background-size:10px 10px;"></div>
+                <div class="deck-grid">
+                  ${renderStation(1)}
+                  <div class="arcade-btn btn" id="btn-play" style="color:${state.winner?'var(--green)':'var(--amber)'};">${state.winner?'▶':'⟳'}<span class="shine"></span></div>
+                  <div class="arcade-btn btn" id="btn-menu" style="color:#ef4444;">🏆<span class="shine"></span></div>
+                  ${renderStation(2)}
+                </div>
+                <div class="mono" style="color:var(--muted); display:flex; justify-content:space-between; padding:6px 4px 0;">
+                  <span style="color:${state.bonusReady?'var(--amber)':'var(--muted)'}">Bonus Gauge: ${state.bonusReady?'READY':'Fill every 4 turns'}</span>
+                  <span>Mode: ${mode.name}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>`;
 
-        for (let r = 0; r < ROWS; r += 1) {
-          for (let c = 0; c < COLS; c += 1) {
-            const x = c * cellSize + cellSize / 2;
-            const y = r * cellSize + cellSize / 2;
+      rootEl.querySelectorAll('[data-col]').forEach(hit=>hit.onclick=()=>dropChip(Number(hit.dataset.col)));
+      rootEl.querySelector('#btn-loadout').onclick=()=>{ state.screen='lobby'; render(); };
+      rootEl.querySelector('#btn-menu').onclick=()=>{ state.screen='menu'; render(); };
+      rootEl.querySelector('#btn-reset').onclick=()=>{ resetBoard(); render(); };
+      rootEl.querySelector('#btn-play').onclick=()=>{ resetBoard(); render(); };
+      rootEl.querySelector('#btn-settings').onclick=()=>{ state.showSettings=true; render(); };
+      if(state.showSettings) settingsModal();
+    }
 
-            ctx.beginPath();
-            ctx.arc(x, y, radius + 3, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255,255,255,0.02)';
-            ctx.fill();
+    function renderStation(player){
+      const p = player===1?state.p1:state.p2;
+      const ch = CHARACTERS[p.char];
+      const active = state.currentPlayer===player && !state.winner;
+      return `<div class="station" style="border-color:${ch.color}55; box-shadow:${active?'0 0 24px '+ch.color+'33':'none'};">
+        <div class="mono" style="color:${ch.color};">PLAYER ${player}</div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="chip" style="width:54px; height:54px; background:${lighten(ch.color,0.2)}; color:${ch.color};">
+            <div class="inner"></div>
+            <div class="emblem">${ch.emblem}</div>
+          </div>
+          <div>
+            <div style="color:var(--muted);">${ch.name}</div>
+            <div class="score">${state.scores[player]}</div>
+            <div style="color:${active?ch.color:'var(--muted)'}; font-size:12px;">${active?'YOUR MOVE':'Idle'}</div>
+          </div>
+        </div>
+      </div>`;
+    }
 
-            const cell = board[r][c];
-            if (cell === PLAYER) {
-              const gradient = ctx.createRadialGradient(x - 4, y - 6, radius * 0.1, x, y, radius);
-              gradient.addColorStop(0, 'rgba(0, 243, 255, 0.9)');
-              gradient.addColorStop(1, 'rgba(0, 243, 255, 0.35)');
-              ctx.fillStyle = gradient;
-            } else if (cell === AI) {
-              const gradient = ctx.createRadialGradient(x - 4, y - 6, radius * 0.1, x, y, radius);
-              gradient.addColorStop(0, 'rgba(255, 0, 153, 0.9)');
-              gradient.addColorStop(1, 'rgba(255, 0, 153, 0.35)');
-              ctx.fillStyle = gradient;
-            } else {
-              ctx.fillStyle = 'rgba(10,10,16,0.65)';
-            }
+    function renderCell(cell){
+      if(cell===9) return `<div class="slot"><div class="virus">☠</div></div>`;
+      if(cell===0) return `<div class="slot"></div>`;
+      const isBonus = cell===11 || cell===12;
+      const owner = (cell===1||cell===11)?state.p1:state.p2;
+      const ch = CHARACTERS[owner.char];
+      const color = isBonus?COLORS.amber:ch.color;
+      const bg = isBonus?`radial-gradient(circle at 30% 30%, #fff7d6, #f59e0b)`:lighten(color,0.15);
+      return `<div class="slot">
+        <div class="chip ${isBonus?'bonus':''}" style="background:${bg}; color:${color};">
+          <div class="inner"></div>
+          <div class="emblem">${isBonus?'★':ch.emblem}</div>
+        </div>
+      </div>`;
+    }
 
-            ctx.beginPath();
-            ctx.arc(x, y, radius, 0, Math.PI * 2);
-            ctx.fill();
+    function attachPlayerControls(){
+      rootEl.querySelectorAll('[data-action]').forEach(btn=>{
+        btn.onclick=()=>{ const p = btn.dataset.player==='1'?state.p1:state.p2; const dir=btn.dataset.action==='next'?1:-1; let idx=p.char+dir; if(idx<0) idx=CHARACTERS.length-1; if(idx>=CHARACTERS.length) idx=0; p.char=idx; render(); };
+      });
+      rootEl.querySelectorAll('[data-skin]').forEach(btn=>{
+        btn.onclick=()=>{ const p = btn.dataset.player==='1'?state.p1:state.p2; p.skin=Number(btn.dataset.skin); render(); };
+      });
+      rootEl.querySelectorAll('[data-mode]').forEach(btn=>{ btn.onclick=()=>{ state.mode=Number(btn.dataset.mode); render(); }; });
+    }
 
-            if (hoverCol === c && cell === 0 && !animating) {
-              ctx.beginPath();
-              ctx.arc(x, y - radius * 1.2, radius * 0.35, 0, Math.PI * 2);
-              ctx.fillStyle = 'rgba(0, 243, 255, 0.35)';
-              ctx.fill();
-            }
-          }
-        }
+    function settingsModal(){
+      const modal=document.createElement('div');
+      modal.className='modal';
+      modal.innerHTML=`
+        <div class="panel modal-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div class="title" style="font-size:22px;">Settings</div>
+            <button class="btn pill glass" id="settings-close">Close</button>
+          </div>
+          ${renderToggle('music','Music')}
+          ${renderToggle('sfx','SFX')}
+          ${renderToggle('vibration','Vibration')}
+          ${renderToggle('colorblind','Colorblind Palette')}
+          ${renderToggle('highQuality','High Quality Graphics')}
+        </div>`;
+      document.body.appendChild(modal);
+      modal.querySelector('#settings-close').onclick=()=>{ state.showSettings=false; modal.remove(); };
+      modal.querySelectorAll('[data-toggle]').forEach(t=>{
+        t.onclick=()=>{ const key=t.dataset.toggle; state.settings[key]=!state.settings[key]; applySettings(); modal.remove(); state.showSettings=false; render(); };
+      });
+    }
+    function renderToggle(key,label){
+      const on=state.settings[key];
+      return `<div class="toggle-row">
+        <div>${label}</div>
+        <button class="btn pill glass" data-toggle="${key}" style="background:${on?'linear-gradient(90deg,var(--cyan),var(--purple))':'transparent'}; color:${on?'#0b1224':'var(--muted)'}; border-color:${on?'rgba(255,255,255,0.25)':'rgba(255,255,255,0.08)'};">${on?'ON':'OFF'}</button>
+      </div>`;
+    }
 
-        ctx.strokeStyle = 'rgba(0, 243, 255, 0.35)';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(1.5, 1.5, rect.width - 3, rect.height - 3);
-      }
+    function applySettings(){
+      document.body.classList.toggle('cb', state.settings.colorblind);
+      document.body.style.imageRendering = state.settings.highQuality?'auto':'pixelated';
+    }
 
-      function checkWin(playerId) {
-        const directions = [
-          [0, 1], [1, 0], [1, 1], [1, -1]
-        ];
+    /* === RENDER === */
+    function render(){
+      if(state.screen==='menu') menuScreen();
+      else if(state.screen==='lobby') lobbyScreen();
+      else gameScreen();
+    }
 
-        for (let r = 0; r < ROWS; r += 1) {
-          for (let c = 0; c < COLS; c += 1) {
-            if (board[r][c] !== playerId) continue;
-            for (const [dr, dc] of directions) {
-              let count = 0;
-              let diagonal = (dr !== 0 && dc !== 0);
-              for (let k = 0; k < 4; k += 1) {
-                const nr = r + dr * k;
-                const nc = c + dc * k;
-                if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) break;
-                if (board[nr][nc] === playerId) {
-                  count += 1;
-                }
-              }
-              if (count === 4) {
-                return { win: true, diagonal };
-              }
-            }
-          }
-        }
-        return { win: false, diagonal: false };
-      }
+    /* Background animation */
+    function animateBG(){
+      state.offset = (state.offset + 0.5) % 60;
+      document.documentElement.style.setProperty('--grid-offset', `${state.offset}px`);
+      requestAnimationFrame(animateBG);
+    }
 
-      function animateDrop(col, targetRow, playerId) {
-        return new Promise(resolve => {
-          const rect = canvas.getBoundingClientRect();
-          const radius = (cellSize / 2) - cellSize * 0.1;
-          const targetY = targetRow * cellSize + cellSize / 2;
-          let y = -radius;
-
-          const color = playerId === PLAYER ? '#00f3ff' : '#ff0099';
-          const trail = playerId === PLAYER ? 'rgba(0, 243, 255, 0.35)' : 'rgba(255, 0, 153, 0.35)';
-
-          function step() {
-            const x = col * cellSize + cellSize / 2;
-            draw();
-            ctx.save();
-            ctx.globalCompositeOperation = 'lighter';
-            ctx.fillStyle = trail;
-            ctx.fillRect(x - radius / 2, 0, radius, Math.max(y, 0));
-            ctx.restore();
-
-            ctx.beginPath();
-            ctx.arc(x, y, radius, 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.shadowColor = color;
-            ctx.shadowBlur = 14;
-            ctx.fill();
-
-            y += DROP_SPEED;
-            if (y < targetY) {
-              requestAnimationFrame(step);
-            } else {
-              board[targetRow][col] = playerId;
-              draw();
-              sounds.impact();
-              resolve();
-            }
-          }
-          sounds.coin();
-          step();
-        });
-      }
-
-      function availableColumns() {
-        return Array.from({ length: COLS }, (_, i) => i).filter(col => board[0][col] === 0);
-      }
-
-      function chooseAiColumn() {
-        const options = availableColumns();
-        if (!options.length) return -1;
-        const preferred = options.sort((a, b) => Math.abs(a - 3) - Math.abs(b - 3));
-        return preferred[Math.floor(Math.random() * Math.min(3, preferred.length))];
-      }
-
-      function triggerShake() {
-        app.classList.remove('shake');
-        void app.offsetWidth;
-        app.classList.add('shake');
-      }
-
-      async function handleTurn(col) {
-        if (animating) return;
-        if (credits < bet || bet <= 0) {
-          setStatus('Insufficient credits for that bet.');
-          sounds.error();
-          return;
-        }
-
-        const row = findRow(col);
-        if (row === -1) {
-          setStatus('Column is full. Choose another lane.');
-          sounds.error();
-          return;
-        }
-
-        animating = true;
-        credits -= bet;
-        updateUI();
-        setStatus('Dropping your chip...');
-
-        await animateDrop(col, row, PLAYER);
-        const playerResult = checkWin(PLAYER);
-        if (playerResult.win) {
-          const reward = playerResult.diagonal ? bet * 3 : bet * 2;
-          credits += reward;
-          updateUI();
-          setStatus(playerResult.diagonal ? `Jackpot! +${formatNumber(reward)} credits.` : `Win! +${formatNumber(reward)} credits.`);
-          sounds.win();
-          if (playerResult.diagonal) triggerShake();
-          animating = false;
-          return;
-        }
-
-        const aiCol = chooseAiColumn();
-        if (aiCol === -1) {
-          setStatus('Grid locked. Resetting board.');
-          animating = false;
-          setTimeout(clearBoard, 400);
-          return;
-        }
-
-        const aiRow = findRow(aiCol);
-        setStatus('House AI moving...');
-        await animateDrop(aiCol, aiRow, AI);
-        const aiResult = checkWin(AI);
-        if (aiResult.win) {
-          setStatus('House connects 4. Better luck next time.');
-          sounds.error();
-          animating = false;
-          return;
-        }
-
-        animating = false;
-        if (!availableColumns().length) {
-          setStatus('Stalemate. Grid resets.');
-          setTimeout(clearBoard, 400);
-        } else {
-          setStatus('Your move. Stack the neon.');
-        }
-      }
-
-      function handlePointer(event) {
-        const x = event.touches ? event.touches[0].clientX : event.clientX;
-        const col = columnFromX(x);
-        if (col >= 0 && col < COLS) {
-          handleTurn(col);
-        }
-      }
-
-      function setupEvents() {
-        canvas.addEventListener('click', handlePointer);
-        canvas.addEventListener('touchstart', (e) => {
-          e.preventDefault();
-          if (!audioReady) {
-            sounds.ensureContext();
-            audioReady = true;
-          }
-          handlePointer(e);
-        }, { passive: false });
-
-        canvas.addEventListener('mousemove', (e) => {
-          hoverCol = columnFromX(e.clientX);
-          draw();
-        });
-        canvas.addEventListener('mouseleave', () => {
-          hoverCol = -1;
-          draw();
-        });
-
-        betButtons.forEach(btn => {
-          btn.addEventListener('touchstart', () => btn.classList.add('selected'), { passive: true });
-          btn.addEventListener('click', () => {
-            const value = btn.dataset.bet === 'max' ? 'max' : Number(btn.dataset.bet);
-            setBet(value);
-            setStatus('Bet locked. Drop to play.');
-            if (!audioReady) {
-              sounds.ensureContext();
-              audioReady = true;
-            }
-          });
-        });
-
-        window.addEventListener('resize', resize);
-        window.addEventListener('orientationchange', resize);
-        document.addEventListener('contextmenu', (e) => e.preventDefault());
-        document.addEventListener('touchmove', (e) => {
-          if (!e.target.closest('input')) e.preventDefault();
-        }, { passive: false });
-      }
-
-      function init() {
-        setupEvents();
-        updateUI();
-        resize();
-        setStatus('Tap a column to drop. House follows instantly.');
-      }
-
-      init();
-    })();
+    applySettings();
+    render();
+    animateBG();
   </script>
 </body>
 </html>

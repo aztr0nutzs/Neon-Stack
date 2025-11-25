@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -60,7 +61,9 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         if (webView != null) {
-            webView.onResume();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+                webView.onResume();
+            }
         }
         applyImmersiveMode();
     }
@@ -68,7 +71,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         if (webView != null) {
-            webView.onPause();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+                webView.onPause();
+            }
         }
         super.onPause();
     }
@@ -98,27 +103,48 @@ public class MainActivity extends Activity {
     private void configureWebView(WebView view) {
         view.setVerticalScrollBarEnabled(false);
         view.setHorizontalScrollBarEnabled(false);
-        view.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
+            view.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        }
         view.setLongClickable(false);
-        view.setHapticFeedbackEnabled(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CUPCAKE) {
+            view.setHapticFeedbackEnabled(true);
+        }
         view.setOnLongClickListener(v -> true); // Disable context menus for a kiosk-like feel.
 
         WebSettings settings = view.getSettings();
         settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ECLAIR_MR1) {
+            settings.setDomStorageEnabled(true);
+        }
         settings.setSupportZoom(false);
-        settings.setBuiltInZoomControls(false);
-        settings.setDisplayZoomControls(false);
-        settings.setLoadWithOverviewMode(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CUPCAKE) {
+            settings.setBuiltInZoomControls(false);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            settings.setDisplayZoomControls(false);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ECLAIR_MR1) {
+            settings.setLoadWithOverviewMode(true);
+        }
         settings.setUseWideViewPort(true);
-        settings.setMediaPlaybackRequiresUserGesture(false);
-        settings.setAllowFileAccess(true);
-        settings.setAllowUniversalAccessFromFileURLs(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            settings.setMediaPlaybackRequiresUserGesture(false);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CUPCAKE) {
+            settings.setAllowFileAccess(true);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            settings.setAllowUniversalAccessFromFileURLs(true);
+        }
 
         view.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                Uri uri = request.getUrl();
+                Uri uri = null;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    uri = request.getUrl();
+                }
                 // Keep navigation inside the WebView for bundled assets; dispatch external schemes.
                 if (Uri.parse(LOCAL_APP_URL).getScheme().equals(uri.getScheme())) {
                     return false;
@@ -135,7 +161,9 @@ public class MainActivity extends Activity {
 
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
-                showErrorOverlay(error.getDescription().toString());
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    showErrorOverlay(error.getDescription().toString());
+                }
             }
         });
 
@@ -156,7 +184,9 @@ public class MainActivity extends Activity {
                 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 | View.SYSTEM_UI_FLAG_FULLSCREEN;
-        getWindow().getDecorView().setSystemUiVisibility(flags);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            getWindow().getDecorView().setSystemUiVisibility(flags);
+        }
     }
 
     private View buildErrorOverlay() {

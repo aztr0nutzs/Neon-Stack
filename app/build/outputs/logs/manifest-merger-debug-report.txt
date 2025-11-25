@@ -5,7 +5,6 @@ INJECTED from C:\Users\Administrator\StudioProjects\Neon-Stack\app\src\main\Andr
 INJECTED from C:\Users\Administrator\StudioProjects\Neon-Stack\app\src\main\AndroidManifest.xml:2:1-29:12
 INJECTED from C:\Users\Administrator\StudioProjects\Neon-Stack\app\src\main\AndroidManifest.xml:2:1-29:12
 	package
-		ADDED from C:\Users\Administrator\StudioProjects\Neon-Stack\app\src\main\AndroidManifest.xml:3:5-40
 		INJECTED from C:\Users\Administrator\StudioProjects\Neon-Stack\app\src\main\AndroidManifest.xml
 	android:versionName
 		INJECTED from C:\Users\Administrator\StudioProjects\Neon-Stack\app\src\main\AndroidManifest.xml
